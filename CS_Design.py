@@ -202,4 +202,5 @@ for i in range(40):
 
 # menu()
 game()
+print("clean main")
 pygame.quit() # closes pygame window once loop ends
