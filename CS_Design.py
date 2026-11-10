@@ -75,7 +75,6 @@ class Button:
         self.function = function
         self.state = pygame.image.load("off.png")
 
-
     def draw(self):
 
         button = pygame.Surface.blit(screen, self.state, self.state.get_rect(center = (self.x, self.y)))
@@ -94,7 +93,6 @@ class Projectile:
         self.base_speed = 4
         self.speed = self.base_speed
         self.max_speed = 18
-
 
     def shoot(self):
         if self.speed + self.acceleration < self.max_speed:
@@ -178,8 +176,6 @@ def game():
             if collision(projectile.x, projectile.y, projectile.radius):
                 projectiles.remove(projectile)
 
-
-        # Inside your game loop (e.g., when the shoot key is pressed)
         current_time = pygame.time.get_ticks()
 
         if current_time - last_shot_time > COOLDOWN:
@@ -191,9 +187,6 @@ def game():
         player.keyBinding()
         pygame.display.flip()
 
-
-
-
 clock = pygame.time.Clock()
 pygame.mixer.music.play(loops = 4)
 for i in range(40):
@@ -202,5 +195,5 @@ for i in range(40):
 
 # menu()
 game()
-print("clean main")
+
 pygame.quit() # closes pygame window once loop ends
