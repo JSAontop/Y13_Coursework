@@ -1,7 +1,13 @@
 import pygame
 import math
 import random
+
+
 WIDTH, HEIGHT = 900, 600 # screen width and height respectively
+
+################ COLOURS ################
+NAVY = (62, 131, 161)
+
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.font.init()
 pygame.mixer.init()
@@ -102,9 +108,11 @@ class Projectile:
         pygame.draw.circle(screen, "purple", (self.x, self.y), self.radius)
 
 class Health:
-    def __init__(self, MAX):
+    def __init__(self, MAX, fill = "green", border = "red"):
         self.max = MAX
         self.current = MAX
+        self.fill = fill
+        self.border = border
 
     def change_health(self, change):
         self.current += change
@@ -117,9 +125,29 @@ class Health:
         return self.current / self.max
 
     def draw(self, x, y, r):
-        pygame.draw.rect(screen, "red", (x - 30, y - 1.5 * r, 60, 5))
-        pygame.draw.rect(screen, "green", (x - 30, y - 1.5 * r, 60 * self.percent(), 5))
-    
+        pygame.draw.rect(screen, self.border, (x - 30, y - 1.5 * r, 60, 5))
+        pygame.draw.rect(screen, self.fill, (x - 30, y - 1.5 * r, 60 * self.percent(), 5))
+
+class Bar:
+    def __init__(self, MAX, rect, fill = "green", border = "red"):
+        self.max = MAX
+        self.current = MAX
+        self.fill = fill
+        self.border = border
+        self.rect = rect
+        self.x = WIDTH//2
+        self.y = HEIGHT//2
+## 0 = x, 1 = y, 2 = width, 3 = height
+    def clicked(self):
+        if pygame.mouse.get_pos()[0] < self.rect[0]:
+            self.x = self.rect[0]
+        elif pygame.mouse.get_pos()[0] > self.rect[0] + self.rect[2]:
+            self.x = self.rect[0] + self.rect[2]
+        else:
+            self.x = (pygame.mouse.get_pos()[0] + self.rect[3] / 20) // self.rect[3] / 10 * self.rect[3] / 10
+        pygame.draw.rect(screen, NAVY, (self.rect[0] - self.rect[3] // 20, self.y - 5, 710, 60))
+        pygame.draw.rect(screen, "white", (100, self.y, self.x - 100, 50))
+
 ################ Functions ################
 def collision(x, y, radius):
     return (
@@ -133,10 +161,10 @@ def menu():
     play = Button(WIDTH//2, HEIGHT//2, game)
     # text_surf = pygame.font.Font(None, 30)
     # text_surf.render("i on cur", text_surf, (0, 0, 0))
-    # pygame.Surface.blit(screen, text_surf, )
+    # pygame.Surface.blit(screen, text_surf, (50, 50, WIDTH//2, HEIGHT//2))
     while running:
         clock.tick(60)
-        screen.fill((62, 131, 161))
+        screen.fill(NAVY)
         pygame.draw.polygon(screen, "black", [(0,0), (0, HEIGHT), (WIDTH, HEIGHT)])
         play.draw()
         if pygame.mouse.get_pressed():
@@ -146,7 +174,7 @@ def menu():
             if event.type == pygame.QUIT:
                 running = False
             if pygame.key.get_pressed()[pygame.K_0]:
-                return game()
+                return settings()
         pygame.display.flip()
 
 def game():
@@ -183,17 +211,41 @@ def game():
             last_shot_time = current_time
 
         player.draw()
-        player.health.change_health(0)
+        player.health.change_health(-0.5)
         player.keyBinding()
         pygame.display.flip()
 
+def settings():
+    running = True
+    global volume
+    volume = Health(12, "white", NAVY)
+    bar = Bar(500, (100, 800, 50, 50))
+    volume.health = int(pygame.mixer.music.get_volume() * 12)
+    print(volume.current)
+    while running:
+        clock.tick(60)
+        screen.fill("BLACK")
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if pygame.key.get_pressed()[pygame.K_0]:
+                return menu()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                    volume.change_health(-1)
+                if event.key == pygame.K_RIGHT:
+                    volume.change_health(1)
+        bar.clicked()
+        volume.draw(WIDTH//2, HEIGHT//2, 0)
+        pygame.mixer.music.set_volume(volume.percent())
+        pygame.display.flip()
+        
+
 clock = pygame.time.Clock()
 pygame.mixer.music.play(loops = 4)
-for i in range(40):
-    pygame.mixer.music.set_volume(0.5)
     # print(pygame.mixer.music.get_volume())
 
-# menu()
 game()
+# settings()
 
 pygame.quit() # closes pygame window once loop ends
