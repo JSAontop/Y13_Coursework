@@ -15,27 +15,28 @@ pygame.mixer.music.load("menu.mp3")
 
 ################ CLASSES ################
 class Player:
-    def __init__(self, direction = 90):
+    def __init__(self, direction = 0):
         self.health = Health(1000)
         self.radius = 20
         self.direction = direction
         self.x = WIDTH//2
         self.y = HEIGHT//2
+        self.speed = 6
 
     def keyBinding(self):
         key = pygame.key.get_pressed()
         if key[pygame.K_w] or key[pygame.K_UP]:
-            self.x += 5*math.cos(self.direction)
-            self.y += 5*math.sin(self.direction)
+            self.x += self.speed * math.cos(self.direction)
+            self.y += self.speed * math.sin(self.direction)
             if collision(self.x, self.y, self.radius):
-                self.x -= 5*math.cos(self.direction)
-                self.y -= 5*math.sin(self.direction)
+                self.x -= self.speed * math.cos(self.direction)
+                self.y -= self.speed * math.sin(self.direction)
         if key[pygame.K_s] or key[pygame.K_DOWN]:
-            self.x -= 3*math.cos(self.direction)
-            self.y -= 3*math.sin(self.direction)
+            self.x -= 0.6 * self.speed * math.cos(self.direction)
+            self.y -= 0.6 * self.speed * math.sin(self.direction)
             if collision(self.x, self.y, self.radius):
-                self.x += 3*math.cos(self.direction)
-                self.y += 3*math.sin(self.direction)
+                self.x += 0.6 * self.speed * math.cos(self.direction)
+                self.y += 0.6 * self.speed * math.sin(self.direction)
 
         if key[pygame.K_a] or key[pygame.K_LEFT]:
             self.direction -= math.radians(5)
@@ -62,11 +63,18 @@ class Enemy:
         self.health = Health(50)
         self.x = random.randint(self.radius , WIDTH - self.radius)
         self.y = random.randint(self.radius, HEIGHT - self.radius)
-
+        overlap = 1
      ######## Spawn fix ########   
-        while math.sqrt((self.x - player.x)**2 + (self.y - player.y)**2) < self.radius + 20:
+        while overlap != 0:
             self.x = random.randint(self.radius , WIDTH - self.radius)
-            self.y = random.randint(self.radius, HEIGHT - self.radius)            
+            self.y = random.randint(self.radius, HEIGHT - self.radius)
+            overlap = 0
+            if math.sqrt((self.x - player.x)**2 + (self.y - player.y)**2) < self.radius + player.radius + 10:
+                overlap += 1
+            for enemy in enemies:
+                if math.sqrt((self.x - enemy.x)**2 + (self.y - enemy.y)**2) < self.radius + enemy.radius + 5:
+                    overlap += 1
+
 
     def draw(self):
         pygame.draw.circle(screen, (246, 206, 70), (self.x, self.y), self.radius)
@@ -91,13 +99,12 @@ class Button:
 
 class Projectile:
     def __init__(self):
-        self.dir = player.direction
+        self.dir = player.direction + math.pi * random.randint(-5, 5) / 180
         self.x = player.x + 10 * math.cos(self.dir)
         self.y = player.y + 10 * math.sin(self.dir)
         self.radius = 5
-        self.acceleration = 0.2
-        self.base_speed = 4
-        self.speed = self.base_speed
+        self.acceleration = 0.5
+        self.speed = 8
         self.max_speed = 18
 
     def shoot(self):
@@ -180,29 +187,39 @@ def menu():
 def game():
     running = True
     global player
+    global enemies
     player = Player()
     enemies = []
     projectiles = []
-    for i in range (5):
+    for i in range (40):
         enemies.append(Enemy())
 
     last_shot_time = 0
-    COOLDOWN = 250
+    COOLDOWN = 150
     while running:
 
         clock.tick(60)
-        start = pygame.time.get_ticks()
         screen.fill("black")
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
 
-        for enemy in enemies:
-            enemy.draw()
         for projectile in projectiles:
             projectile.shoot()
             if collision(projectile.x, projectile.y, projectile.radius):
                 projectiles.remove(projectile)
+            for enemy in enemies:
+                if math.sqrt((projectile.x - enemy.x)**2 + (projectile.y - enemy.y)**2) < enemy.radius + projectile.radius:
+                    enemy.health.change_health(-2)
+                    projectiles.remove(projectile)
+                if math.sqrt((player.x - enemy.x)**2 + (player.y - enemy.y)**2) < enemy.radius + player.radius:
+                    player.health.change_health(-2)
+
+        for enemy in enemies:
+            enemy.draw()
+            if enemy.health.current <= 0:
+                enemies.remove(enemy)
+
 
         current_time = pygame.time.get_ticks()
 
@@ -211,7 +228,7 @@ def game():
             last_shot_time = current_time
 
         player.draw()
-        player.health.change_health(-0.5)
+        player.health.change_health(0)
         player.keyBinding()
         pygame.display.flip()
 
