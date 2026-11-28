@@ -63,6 +63,8 @@ class Enemy:
         self.health = Health(50)
         self.x = random.randint(self.radius , WIDTH - self.radius)
         self.y = random.randint(self.radius, HEIGHT - self.radius)
+        self.destination = (random.randint(self.radius , WIDTH - self.radius),
+                             random.randint(self.radius , HEIGHT - self.radius))
         overlap = 1
      ######## Spawn fix ########   
         while overlap != 0:
@@ -75,6 +77,19 @@ class Enemy:
                 if math.sqrt((self.x - enemy.x)**2 + (self.y - enemy.y)**2) < self.radius + enemy.radius + 5:
                     overlap += 1
 
+    def move(self):
+        dx = self.destination[0] - self.x
+        dy = self.destination[1] - self.y
+
+        distance = math.sqrt(dx ** 2 + dy ** 2)
+
+
+        if math.sqrt((self.x - self.destination[0])**2 + (self.y - self.destination[1])**2) > 5:
+            self.x += 1 * dx / distance
+            self.y += 1 * dy / distance
+        else:
+            self.destination = (random.randint(self.radius , WIDTH - self.radius),
+                                random.randint(self.radius , HEIGHT - self.radius))
 
     def draw(self):
         pygame.draw.circle(screen, (246, 206, 70), (self.x, self.y), self.radius)
@@ -191,12 +206,16 @@ def game():
     player = Player()
     enemies = []
     projectiles = []
-    for i in range (40):
+    for i in range (10):
         enemies.append(Enemy())
 
     last_shot_time = 0
     COOLDOWN = 150
     while running:
+
+        if len(enemies) == 0:
+            for i in range (10):
+                enemies.append(Enemy())
 
         clock.tick(60)
         screen.fill("black")
@@ -204,22 +223,28 @@ def game():
             if event.type == pygame.QUIT:
                 running = False
 
+        ####  PROJECTILE SHOOTING ####
         for projectile in projectiles:
             projectile.shoot()
             if collision(projectile.x, projectile.y, projectile.radius):
                 projectiles.remove(projectile)
-            for enemy in enemies:
-                if math.sqrt((projectile.x - enemy.x)**2 + (projectile.y - enemy.y)**2) < enemy.radius + projectile.radius:
-                    enemy.health.change_health(-2)
-                    projectiles.remove(projectile)
-                if math.sqrt((player.x - enemy.x)**2 + (player.y - enemy.y)**2) < enemy.radius + player.radius:
-                    player.health.change_health(-2)
+            else:
+                for enemy in enemies:
+                    if math.sqrt((projectile.x - enemy.x)**2 + (projectile.y - enemy.y)**2) < enemy.radius + projectile.radius:
+                        enemy.health.change_health(-2)
+                        projectiles.remove(projectile)
+                        break
+                    if math.sqrt((player.x - enemy.x)**2 + (player.y - enemy.y)**2) < enemy.radius + player.radius:
+                        player.health.change_health(-2)
+        ##############################
 
+        #### ENEMY METHODS LOOP ####
         for enemy in enemies:
+            enemy.move()
             enemy.draw()
             if enemy.health.current <= 0:
                 enemies.remove(enemy)
-
+        ##############################
 
         current_time = pygame.time.get_ticks()
 
@@ -233,12 +258,14 @@ def game():
         pygame.display.flip()
 
 def settings():
-    running = True
+    pygame.mixer.music.play(loops = 4)
+
     global volume
     volume = Health(12, "white", NAVY)
     bar = Bar(500, (100, 800, 50, 50))
     volume.health = int(pygame.mixer.music.get_volume() * 12)
     print(volume.current)
+    running = True
     while running:
         clock.tick(60)
         screen.fill("BLACK")
@@ -259,8 +286,6 @@ def settings():
         
 
 clock = pygame.time.Clock()
-pygame.mixer.music.play(loops = 4)
-    # print(pygame.mixer.music.get_volume())
 
 game()
 # settings()
